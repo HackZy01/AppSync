@@ -18,17 +18,22 @@ jobs:
         run: |
           set -e
           brew update || true
-          # dpkg is used by Theos packaging, ldid helps with code signing for some toolchains
           brew install dpkg || true
           brew install ldid || true
         shell: bash
-
+        
       - name: Install Theos
         run: |
-          set -e
           git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
+          export THEOS="$HOME/theos"
+          # populate vendor/include and vendor/lib
+          "$THEOS/bin/update-theos"
+        env:
+          THEOS: ${{ runner.temp }}/theos
+      
+      - name: Set THEOS env
+        run: |
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-        shell: bash
 
       - name: Build package
         env:
