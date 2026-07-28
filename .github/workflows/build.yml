@@ -35,10 +35,13 @@ jobs:
           THEOS: ${{ env.THEOS }}
         run: |
           set -ex
-          # Clean first (ignore errors if clean target missing)
           make clean || true
-          # Build package (theos Makefile should be present in the repo)
-          make package
+          if command -v dm.pl >/dev/null 2>&1; then
+            echo "dm.pl found: running make package"
+            make package
+          else
+            make
+          fi
         shell: bash
 
       - name: List possible artifacts
