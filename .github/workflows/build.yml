@@ -1,0 +1,59 @@
+name: Build AppSync
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build:
+    name: Build (macOS / Theos)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Homebrew deps
+        run: |
+          set -e
+          brew update || true
+          # dpkg is used by Theos packaging, ldid helps with code signing for some toolchains
+          brew install dpkg || true
+          brew install ldid || true
+        shell: bash
+
+      - name: Install Theos
+        run: |
+          set -e
+          git clone --depth=1 https://github.com/theos/theos.git $HOME/theos
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build package
+        env:
+          THEOS: ${{ env.THEOS }}
+        run: |
+          set -ex
+          # Clean first (ignore errors if clean target missing)
+          make clean || true
+          # Build package (theos Makefile should be present in the repo)
+          make package
+        shell: bash
+
+      - name: List possible artifacts
+        run: |
+          echo "Looking for .deb files"
+          ls -la || true
+          ls -la packages || true
+          find . -type f -name "*.deb" -print || true
+        shell: bash
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appsync-deb
+          path: |
+            *.deb
+            packages/**/*.deb
+            packages/*.deb
